@@ -54,6 +54,15 @@ pawn		forward 2, no on in way and on first turn
 	 		diagonal 1, only if enemy 
 
 
+NEED TO IMPLEMENT
+
+pawn en passant (vulnerable after first forwarddistance 2 move)
+
+check
+checkmate
+stalemate
+
+
 =end
 
 
@@ -82,7 +91,7 @@ class Chess
 				
 			valid_move = validate_input(coords)
 		rescue FormattingError
-			puts "Incorrect formatting"
+			puts "Incorrect formatting. Should look like 'a1:c5'"
 			retry
 		rescue RangeError
 			puts "Number or letter out of range"
@@ -119,8 +128,6 @@ class Chess
 		raise RangeError unless ("a".."h").include?(coord[0]) and ("a".."h").include?(coord[3]) and (1..8).include?(coord[1].to_i) and (1..8).include?(coord[4].to_i)
 			
 
-			
-		
 		origin = translate(coord[0..1])
 		destination = translate(coord[3..4])
 		@board.validate_move(origin, destination, @players[(@turn+1)%2].team)
@@ -134,9 +141,13 @@ class Chess
 		loop do
 			player_index = (@turn+1)%2
 			player = @players[player_index]
-			puts "#{player.name}, enter your move: (a1:c5)"
+			other_team = player.team == "white" ? "black" : "white"
+			puts "#{player.name}, enter your move:"
 			move = get_coordinates
 			@board.execute_move(move)
+			if @board.check(other_team)
+				print "CHECK"
+			end
 			print @board
 			@turn += 1
 		end

@@ -14,6 +14,7 @@ class Board
 
 		#place kings
 		@board[0][3] = King.new("black")
+		# @board[4][3] = King.new("black")
 		@board[7][3] = King.new("white")
 		#queens
 		@board[0][4] = Queen.new("black")
@@ -52,6 +53,9 @@ class Board
 		print "  " + @taken_pieces["black"].join("") + "\n"
 	end
 
+	def other_team(team)
+		team == "white" ? "black" : "white"
+	end
 
 	def get_delta(origin, destination)
 		[destination.first - origin.first, destination.last - origin.last]
@@ -75,14 +79,22 @@ class Board
 
 		raise NonMovementError if origin == destination
 				
-		raise MovementError unless piece.valid_delta?(get_delta(origin, destination))
 
-		raise ObstacleError if pieces_between(origin, destination)
+		if piece.type == "pawn"
+			piece_at_destination = get_square(destination) != false
+			raise MovementError unless piece.valid_delta?(get_delta(origin, destination),piece_at_destination)
+		else
+			raise MovementError unless piece.valid_delta?(get_delta(origin, destination))
+		end
+
+
+		raise ObstacleError if (not piece.type == "knight") and pieces_between(origin, destination)
 
 
 		raise CivilWarError if get_square(destination) and get_square(destination).team == player_team
 
-		# raise CheckError if check(player_team)
+		raise CheckError if simulate_move_for_check(origin, destination)
+
 
 	end
 
@@ -93,6 +105,7 @@ class Board
 		origin, destination = move
 		origin_piece = get_square(origin)
 
+
 		origin_piece.move_history << get_delta(origin, destination)
 
 		destination_piece = get_square(destination)
@@ -102,19 +115,28 @@ class Board
 		set_square(origin, false)
 	end
 
-	def simulate_move
+	def simulate_move_for_check(origin, destination)
+		origin_piece = get_square(origin)
+		destination_piece = get_square(destination)
+
+
+		set_square(destination, origin_piece) 
+		set_square(origin, false)
+
+		#checkadsf
+		result = check(origin_piece.team)
+
+		#reset
+		set_square(origin, origin_piece)
+		set_square(destination, destination_piece) 
 		
+		result
 	end
 
 	def pieces_between(origin, destination)
 
-		if get_square(origin).type == "knight"
-			return false
-		end
-
 		x1,y1 = origin
 		x2,y2 = destination
-
 
 		list = []
 		if x1 == x2 or y1 == y2
@@ -139,7 +161,6 @@ class Board
 			end
 		end
 
-		p list
 		if list.length <= 2
 			return false
 		else
@@ -148,11 +169,41 @@ class Board
 	end
 
 
-	def check
-		
+	def king_coord(team)
+		(0..7).each do |x|
+			(0..7).each do |y|
+				piece = get_square([x,y])
+				return [x,y] if piece and piece.type == "king" and piece.team == team
+			end
+		end
 	end
 
+	def check(team)
+		# other_team = team == "white" ? "black" : "white"
+
+		k_coord = king_coord(team)
+		(0..7).each do |x|
+			(0..7).each do |y|
+				piece = get_square([x,y])
+				if piece and piece.team == other_team(team)
+					begin
+						validate_move([x,y],k_coord, other_team(team))
+					rescue
+						#do nothing
+					else
+						return true
+					end
+				end
+			end
+		end
+		false
+
+	end
+
+
+
 	def checkmate
+		
 		
 	end
 
@@ -163,8 +214,10 @@ class Board
 end
 
 
-# b = Board.new
-# b.new_game
+b = Board.new
+b.new_game
+
+p b.king_coord("black")
 # b.dead_white << Pawn.new("black")
 # b.dead_black << Queen.new("white")
 # b.dead_black << Pawn.new("white")
