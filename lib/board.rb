@@ -13,12 +13,12 @@ class Board
 		@board = ([[]]*8).map {|row| [false]*8}
 
 		#place kings
-		@board[0][3] = King.new("black")
-		# @board[4][3] = King.new("black")
-		@board[7][3] = King.new("white")
+		@board[0][4] = King.new("black")
+		@board[7][4] = King.new("white")
+
 		#queens
-		@board[0][4] = Queen.new("black")
-		@board[7][4] = Queen.new("white")
+		@board[0][3] = Queen.new("black")
+		@board[7][3] = Queen.new("white")
 
 		#rooks
 		@board[0][0] = Rook.new("black")
@@ -43,6 +43,25 @@ class Board
 		@board[6].map! {|v| Pawn.new("white") }
 	end
 
+	def castling_example
+		@board = ([[]]*8).map {|row| [false]*8}
+
+		#place kings
+		@board[0][4] = King.new("black")
+		@board[7][4] = King.new("white")
+
+
+		#rooks
+		@board[0][0] = Rook.new("black")
+		@board[1][4] = Rook.new("black")
+		@board[7][0] = Rook.new("white")
+		@board[7][7] = Rook.new("white")
+
+		#bishops
+
+		@board[3][4] = Bishop.new("white")
+	end
+
 	def to_s
 		print "  " + @taken_pieces["white"].join("") + "\n"
 		print "  " + ("A".."H").to_a.join(" ") + "\n"
@@ -61,6 +80,18 @@ class Board
 		[destination.first - origin.first, destination.last - origin.last]
 	end
 
+	def calculate_destination(origin, delta)
+		[origin.first+delta.first, origin.last+delta.last]
+	end
+
+	def each_coordinate
+		(0..7).each do |x|
+			(0..7).each do |y|
+				yield [x,y]
+			end
+		end
+	end
+
 	def get_square(coord)
 		@board[coord.last][coord.first]
 	end
@@ -71,7 +102,7 @@ class Board
 
 	def validate_move(origin, destination, player_team)
 
-
+		raise RangeError unless (0..7).include?(destination.first) and (0..7).include?(destination.last)
 
 		raise ExistenceError if get_square(origin) == false or get_square(origin).team != player_team
 		
@@ -88,23 +119,18 @@ class Board
 		end
 
 
-		raise ObstacleError if (not piece.type == "knight") and pieces_between(origin, destination)
-
+		raise ObstacleError if (not piece.type == "knight") and pieces_between_exclusive?(origin, destination)
 
 		raise CivilWarError if get_square(destination) and get_square(destination).team == player_team
 
 		raise CheckError if simulate_move_for_check(origin, destination)
-
-
 	end
 
-	def capture
-	end
+
 
 	def execute_move(move)
 		origin, destination = move
 		origin_piece = get_square(origin)
-
 
 		origin_piece.move_history << get_delta(origin, destination)
 
@@ -133,12 +159,11 @@ class Board
 		result
 	end
 
-	def pieces_between(origin, destination)
-
+	def coordinates_between_inclusive(origin, destination)
 		x1,y1 = origin
 		x2,y2 = destination
 
-		list = []
+		coordinates = []
 		if x1 == x2 or y1 == y2
 			perpindeculer = true
 		elsif y2+x2 == y1+x1
@@ -152,14 +177,20 @@ class Board
 		(x1..x2).each do |x|
 			(y1..y2).each do |y|
 				if perpindeculer
-					list << get_square([x,y])
+					coordinates << [x,y]
 				elsif ld and y-x == ld
-					list << get_square([x,y])
+					coordinates << [x,y]
 				elsif rd and x+y == rd
-					list << get_square([x,y])
+					coordinates << [x,y]
 				end
 			end
 		end
+		coordinates
+	end
+
+	def pieces_between_exclusive?(origin, destination)
+
+		list = coordinates_between_inclusive(origin,destination).map {|coord| get_square(coord)}
 
 		if list.length <= 2
 			return false
@@ -168,26 +199,73 @@ class Board
 		end
 	end
 
+	def find_piece(type, team)
+		each_coordinate do |coord|
+			piece = get_square(coord)
+			return coord if piece and piece.type == type and piece.team == team
+		end
+		nil
+	end
 
-	def king_coord(team)
-		(0..7).each do |x|
-			(0..7).each do |y|
-				piece = get_square([x,y])
-				return [x,y] if piece and piece.type == "king" and piece.team == team
+
+	def check(team)
+		k_coord = find_piece("king", team)
+		check_moves = []
+		each_coordinate do |coord|
+			piece = get_square(coord)
+			if piece and piece.team == other_team(team)
+				begin
+					validate_move(coord, k_coord, other_team(team))
+				rescue
+					#do nothing
+				else
+					check_moves << [coord, k_coord]
+					
+				end
 			end
+		end
+
+		if check_moves.length > 0
+			check_moves
+		else
+			false
 		end
 	end
 
-	def check(team)
-		# other_team = team == "white" ? "black" : "white"
 
-		k_coord = king_coord(team)
-		(0..7).each do |x|
-			(0..7).each do |y|
-				piece = get_square([x,y])
-				if piece and piece.team == other_team(team)
+	def king_can_escape(team)
+		king_location = find_piece("king", team)
+		king = get_square(king_location)
+		king.calculate_valid_deltas.each do |delta|
+			destination = calculate_destination(king_location, delta)
+			begin
+				validate_move(king_location, destination, team)
+			rescue
+				#do nothing
+			else
+				return true
+			end
+		end
+		false
+	end
+
+	def check_can_be_blocked_or_killed(team)
+		check_moves = check(team)
+
+		if check_moves.length > 1
+			return false
+		end
+		origin, destination = check_moves[0]
+		check_path = coordinates_between_inclusive(origin, destination)
+
+		each_coordinate do |board_coord|
+			piece = get_square(board_coord)
+			if piece and piece.team == team
+
+				check_path[0...-1].each do |path_coord|
+
 					begin
-						validate_move([x,y],k_coord, other_team(team))
+						validate_move(board_coord, path_coord, team)
 					rescue
 						#do nothing
 					else
@@ -197,71 +275,49 @@ class Board
 			end
 		end
 		false
-
 	end
 
-
-
-	def checkmate
-		
-		
+	def checkmate(team)
+		check(team) and not king_can_escape(team) and not check_can_be_blocked_or_killed(team)
 	end
+
 
 	def stalemate
-		
+		#not in check and no valid moves
 	end
+
+	def pawn_promotion_check(team)
+		each_coordinate do |x,y|
+			if team == "white"
+				if y == 0
+					piece = get_square([x,y])
+					if piece and piece.team == team and piece.type == "pawn"
+						
+					end
+				end
+			else
+				if y == 7
+					piece = get_square([x,y])
+					if piece and piece.team == team and piece.type == "pawn"
+
+					end
+				end
+			end
+
+		end
+	end
+
+
 
 end
 
 
 b = Board.new
 b.new_game
+ 
 
-p b.king_coord("black")
-# b.dead_white << Pawn.new("black")
-# b.dead_black << Queen.new("white")
-# b.dead_black << Pawn.new("white")
-# b.to_s
+
+ 
 
 
 
-
-
-
-=begin
-		#same row/column
-
-		output = []
-		(x1..x2).each do |x|
-			(y1..y2).each do |y|
-				output << get_square([x,y])
-			end
-		end
-
-		if x1 == x2
-			min, max = [y1, y2].sort 
-
-			list = (min..max).map do |y|
-				get_square([x1,y]) 
-			end
-
-		#same column
-		elsif y1 == y2
-			min, max = [x1, x2].sort 
-			list = (min..max).map do |x|
-				get_square([x,y1]) 
-			end
-
-		#same diagonal right /
-		elsif y2+x2 == y1+x1
-
-		#same diagonal left \
-		elsif y2-x2 == y1-x1
-			min_y, max_y = [y1, y2].sort 
-			min_x, max_x = [x1, x2].sort 
-			change = max_y - min_y
-			list = (0..change).map do |c|
-				get_square([min_x + c, min_y + c])
-			end
-		end
-=end

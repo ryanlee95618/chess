@@ -20,6 +20,32 @@ class Piece
 	def type
 		self.class.to_s.downcase
 	end
+
+	def calculate_valid_deltas
+		output = []
+		(-7..7).each do |x|
+			(-7..7).each do |y|
+				delta = [x,y]
+				
+				if type == "pawn"
+					if valid_delta?(delta, true)
+						output << delta
+					end
+					if valid_delta?(delta, false)
+						output << delta
+					end
+				else
+
+					if valid_delta?(delta)
+						output << delta
+					end
+				end
+			end
+		end
+		output
+	end
+
+
 end
 
 
@@ -35,6 +61,19 @@ class King < Piece
 	def valid_delta?(delta)
 		(diagonal?(delta) and distance(delta) == 2) or (perpendiculer?(delta) and distance(delta) == 1)
 	end
+
+	def calculate_valid_deltas
+		output = []
+		(-7..7).each do |x|
+			(-7..7).each do |y|
+				delta = [x,y]
+				output << delta if valid_delta?(delta)				
+			end
+		end
+		output
+	end
+
+
 end
 
 class Queen < Piece
@@ -46,6 +85,7 @@ class Queen < Piece
 	def valid_delta?(delta)
 		diagonal?(delta) or perpendiculer?(delta)
 	end
+
 end
 
 class Rook < Piece
@@ -95,7 +135,7 @@ class Pawn < Piece
 
 
 
-	def valid_delta?(delta, piece_at_destination)
+	def valid_delta?(delta, piece_at_destination, en_passant = false)
 
 		#must move forward
 		if @team == "white"
@@ -122,11 +162,21 @@ class Pawn < Piece
 		
 
 		#can move diagonally if there is a piece at destination (we already know destance is 2)
-		return piece_at_destination if diagonal?(delta)
+
+
+		if diagonal?(delta)
+			if piece_at_destination
+				return true
+			else
+				en_passant
+			end
+		end
+
+		# return piece_at_destination if diagonal?(delta)
 
 		false
 
-		# Another unusual rule is the en passant capture. It can occur after a pawn advances two squares using its initial two-step move option, and the square passed over is attacked by an enemy pawn. The enemy pawn is entitled to capture the moved pawn "in passing"—as if it had advanced only one square. The capturing pawn moves to the square over which the moved pawn passed (see diagram), and the moved pawn is removed from the board. The option to capture en passant must be exercised on the move immediately following the double-step pawn advance, or it is lost for the remainder of the game.
+		
 
 	end
 

@@ -16,10 +16,16 @@ keeps track of turns?, players
 could keep track of timer
 
 
-Boards
-holds all pieces (and taken pieces)
+
+Game
 validates moves sent from Chess
-execults moves
+
+
+
+Board
+holds all pieces (and taken pieces)
+
+executes moves
 looks for check, checkmate, stalemate
 	needs to simulate moves to see if
 		1. moving a player's piece would put that player's king in check
@@ -51,16 +57,33 @@ bishop	diagonal
 knight	distance = 3 and not perpendicular
 pawn		forward 2, no on in way and on first turn
 			forward 1, no one in way
-	 		diagonal 1, only if enemy 
+	 		diagonal 1, only if enemy on destination
+	 		or if pawn "en passant"
+
 
 
 NEED TO IMPLEMENT
 
-pawn en passant (vulnerable after first forwarddistance 2 move)
-
 check
 checkmate
 stalemate
+
+pawn en passant (vulnerable after first forwarddistance 2 move)
+# Another unusual rule is the en passant capture. It can occur after a pawn advances two squares using its initial two-step move option, and the square passed over is attacked by an enemy pawn. The enemy pawn is entitled to capture the moved pawn "in passing"—as if it had advanced only one square. The capturing pawn moves to the square over which the moved pawn passed (see diagram), and the moved pawn is removed from the board. The option to capture en passant must be exercised on the move immediately following the double-step pawn advance, or it is lost for the remainder of the game.
+The capturing pawn must be on its fifth rank.
+The opponent must move a pawn two squares, landing the pawn directly alongside the capturing pawn on the fifth rank.
+You must make the capture immediately; you only get one chance to capture en passant.
+
+
+
+castling:
+Neither the king nor the rook being used has been moved yet during the game. If either piece has been moved, then castling is not allowed, even if the piece is moved back to its original square.
+All of the squares between the king and the rook must be empty.
+The king must not be in check, nor can castling move the king through a square where it would be in check.
+
+
+
+pawn promotion
 
 
 =end
@@ -97,7 +120,7 @@ class Chess
 			puts "Number or letter out of range"
 			retry
 		rescue ExistenceError
-			puts "You don't have a piece to move at that origin"
+			puts "You don't have a piece to move at that square"
 			retry
 		rescue NonMovementError
 			puts "Invalid move. Destination is same as origin"
@@ -117,6 +140,15 @@ class Chess
 		else
 			valid_move 
 		end
+
+	end
+
+	def choose_promotion_piece(team)
+		name  = gets.chomp.downcase
+		piece_names = ["queen", "rook", "bishop", "knight", "pawn"]
+
+		new_piece = Object.const_get(name.capitalize).new
+
 
 	end
 
@@ -145,8 +177,16 @@ class Chess
 			puts "#{player.name}, enter your move:"
 			move = get_coordinates
 			@board.execute_move(move)
+
+			# @board.game_state(other_team)
+
 			if @board.check(other_team)
 				print "CHECK"
+
+				print "CHECKMATE" if @board.checkmate(other_team)
+
+				print "Can escape: " + @board.king_can_escape(other_team).to_s
+				print "be blocked or killed: " + @board.check_can_be_blocked_or_killed(other_team).to_s
 			end
 			print @board
 			@turn += 1
