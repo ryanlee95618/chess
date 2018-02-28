@@ -3,6 +3,7 @@ class Piece
 	def initialize(team)
 		@team = team
 		@move_history = []
+		@valid_deltas = calculate_valid_deltas
 	end
 
 	def diagonal?(delta)
@@ -118,8 +119,8 @@ class Knight < Piece
 	def valid_delta?(delta)
 		distance(delta) == 3 and not perpendiculer?(delta)
 	end
-
 end
+
 
 class Pawn < Piece
 
@@ -144,40 +145,22 @@ class Pawn < Piece
 			return false unless delta.last.positive?
 		end
 
-
 		return false if distance(delta) > 2
 
-		#can move forward and not sideways if no piece at destination
-		if delta.first == 0
-			if piece_at_destination
-				return false
-			else
-				if distance(delta) == 1
-					return true
-				elsif distance(delta) == 2
-					return @move_history.empty?
-				end
+
+		if delta.first == 0 #forward only			
+			if distance(delta) == 1
+				return (not piece_at_destination)
+			elsif distance(delta) == 2
+				return (@move_history.empty? and (not piece_at_destination))
 			end
-		end
-		
-
-		#can move diagonally if there is a piece at destination (we already know destance is 2)
-
-
-		if diagonal?(delta)
+		else #must be diagonal
 			if piece_at_destination
 				return true
 			else
 				en_passant
 			end
 		end
-
-		# return piece_at_destination if diagonal?(delta)
-
-		false
-
-		
-
 	end
 
 end

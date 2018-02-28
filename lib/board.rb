@@ -41,9 +41,9 @@ class Board
 		#pawns
 		@board[1].map! {|v| Pawn.new("black") }
 		@board[6].map! {|v| Pawn.new("white") }
-	end
 
-	def castling_example
+	end
+	def castling_scenario
 		@board = ([[]]*8).map {|row| [false]*8}
 
 		#place kings
@@ -58,9 +58,33 @@ class Board
 		@board[7][7] = Rook.new("white")
 
 		#bishops
-
 		@board[3][4] = Bishop.new("white")
 	end
+	def stalemate_scenario
+		@board = ([[]]*8).map {|row| [false]*8}
+
+		@board[0][7] = King.new("black")
+		@board[7][4] = King.new("white")
+
+		@board[2][5] = Knight.new("white")
+
+		@board[7][6] = Rook.new("white")
+
+		@board[6][3] = Pawn.new("white")
+		@board[4][3] = Pawn.new("black")
+	end
+	def pawn_promo_scenario
+		@board = ([[]]*8).map {|row| [false]*8}
+
+		@board[0][7] = King.new("black")
+		@board[7][4] = King.new("white")
+
+	
+
+		@board[6][2] = Pawn.new("black")
+		@board[4][3] = Pawn.new("white")
+	end
+
 
 	def to_s
 		print "  " + @taken_pieces["white"].join("") + "\n"
@@ -145,11 +169,10 @@ class Board
 		origin_piece = get_square(origin)
 		destination_piece = get_square(destination)
 
-
 		set_square(destination, origin_piece) 
 		set_square(origin, false)
 
-		#checkadsf
+		#check
 		result = check(origin_piece.team)
 
 		#reset
@@ -190,13 +213,15 @@ class Board
 
 	def pieces_between_exclusive?(origin, destination)
 
-		list = coordinates_between_inclusive(origin,destination).map {|coord| get_square(coord)}
+		# list = coordinates_between_inclusive(origin,destination).map {|coord| get_square(coord)}
 
-		if list.length <= 2
-			return false
-		else
-			return list[1...-1].select {|piece| piece}.count > 0
-		end
+		# if list.length <= 2
+		# 	return false
+		# else
+		# 	return list[1...-1].select {|piece| piece}.count > 0
+		# end
+		pieces = coordinates_between_inclusive(origin,destination).map {|coord| get_square(coord)}[1...-1].select {|piece| piece}
+		pieces.count > 0
 	end
 
 	def find_piece(type, team)
@@ -282,9 +307,25 @@ class Board
 	end
 
 
-	def stalemate
+	def stalemate(team)
 		#not in check and no valid moves
+		each_coordinate do |piece_coord|
+			piece = get_square(piece_coord)
+			if piece and piece.team == team
+				each_coordinate do |destination|
+					begin
+						validate_move(piece_coord, destination, team)
+					rescue
+						#do nothing
+					else
+						return false
+					end
+				end
+			end
+		end
+		true
 	end
+
 
 	def pawn_promotion_check(team)
 		each_coordinate do |x,y|
@@ -292,7 +333,7 @@ class Board
 				if y == 0
 					piece = get_square([x,y])
 					if piece and piece.team == team and piece.type == "pawn"
-						
+
 					end
 				end
 			else

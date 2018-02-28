@@ -13,6 +13,8 @@ Chess
 runs the game
 responsible for getting properly formatted input
 keeps track of turns?, players
+
+
 could keep track of timer
 
 
@@ -168,7 +170,7 @@ class Chess
 	end
 
 	def play
-		@board.new_game
+		@board.stalemate_scenario
 		print @board
 		loop do
 			player_index = (@turn+1)%2
@@ -183,17 +185,25 @@ class Chess
 			if @board.check(other_team)
 				print "CHECK"
 
-				print "CHECKMATE" if @board.checkmate(other_team)
+				if @board.checkmate(other_team)
 
-				print "Can escape: " + @board.king_can_escape(other_team).to_s
-				print "be blocked or killed: " + @board.check_can_be_blocked_or_killed(other_team).to_s
+					print "CHECKMATE" 
+					break
+				end
+
+				# print "Can escape: " + @board.king_can_escape(other_team).to_s
+				# print "be blocked or killed: " + @board.check_can_be_blocked_or_killed(other_team).to_s
+			elsif @board.stalemate(other_team)
+				print 'stalemate'
+				break
+				
 			end
 			print @board
 			@turn += 1
 		end
+
+		print "GAME OVER"
 	end
 end
 
-game = Chess.new
-game.play
-# game.validate_input("A9:B5")
+
