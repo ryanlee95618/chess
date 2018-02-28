@@ -138,6 +138,16 @@ class Board
 		if piece.type == "pawn"
 			piece_at_destination = get_square(destination) != false
 			raise MovementError unless piece.valid_delta?(get_delta(origin, destination),piece_at_destination)
+		elsif piece.type == "king"
+			result = piece.valid_delta?(get_delta(origin, destination))
+			if [-2, 2].include?(result)
+				direction = result.positive? ? "right" : "left"
+				raise MovementError unless can_castle?(piece.team, direction)
+			else
+				raise MovementError unless piece.valid_delta?(get_delta(origin, destination))
+			end
+			#true, false, +-2
+
 		else
 			raise MovementError unless piece.valid_delta?(get_delta(origin, destination))
 		end
@@ -155,6 +165,16 @@ class Board
 	def execute_move(move)
 		origin, destination = move
 		origin_piece = get_square(origin)
+
+		#castling
+		if origin_piece.type == "king" and get_delta(origin, destination).first.abs == 2
+			
+			#move knight as well
+			direction = get_delta(origin, destination).first.positive? ? "right" : "left" 
+			castle_rook(origin_piece.team, direction)
+		end
+
+
 
 		origin_piece.move_history << get_delta(origin, destination)
 
@@ -348,7 +368,44 @@ class Board
 		end
 	end
 
+	def can_castle?(team, direction)
 
+		# Neither the king nor the rook being used has been moved yet during the game. 
+		y = team == "white" ? 7 : 0
+		king = @board[y][4]
+		return false unless king and king.move_history.empty?
+
+		x = direction == "right" ? 7 : 0
+		rook = @board[y][x]
+		return false unless rook and rook.move_history.empty?
+
+
+		#All of the squares between the king and the rook must be empty.
+		return false if pieces_between_exclusive?([4,y],[x,y])
+
+		#The king must not be in check
+		return false if check(team)
+
+		#nor can castling move the king through a square where it would be in check.
+		x_path_coordinates = direction == "right" ? [5,6] : [2,3]
+		x_path_coordinates.each do |x|
+			return false if simulate_move_for_check([4,y],[x,y])
+		end
+
+		
+		true
+
+
+
+	end
+
+
+	def castle_rook(team, direction)
+		y = team == "white" ? 7 : 0
+		x = direction == "right" ? 7 : 0
+		x_delta = direction == "right" ? 1 : -1
+		execute_move([[x,y],[4+x_delta ,y]])
+	end
 
 end
 

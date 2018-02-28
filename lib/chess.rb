@@ -79,9 +79,12 @@ You must make the capture immediately; you only get one chance to capture en pas
 
 
 castling:
-Neither the king nor the rook being used has been moved yet during the game. If either piece has been moved, then castling is not allowed, even if the piece is moved back to its original square.
-All of the squares between the king and the rook must be empty.
-The king must not be in check, nor can castling move the king through a square where it would be in check.
+
+
+
+
+
+
 
 
 
@@ -170,7 +173,7 @@ class Chess
 	end
 
 	def play
-		@board.stalemate_scenario
+		@board.new_game
 		print @board
 		loop do
 			player_index = (@turn+1)%2
@@ -179,8 +182,6 @@ class Chess
 			puts "#{player.name}, enter your move:"
 			move = get_coordinates
 			@board.execute_move(move)
-
-			# @board.game_state(other_team)
 
 			if @board.check(other_team)
 				print "CHECK"
@@ -191,8 +192,6 @@ class Chess
 					break
 				end
 
-				# print "Can escape: " + @board.king_can_escape(other_team).to_s
-				# print "be blocked or killed: " + @board.check_can_be_blocked_or_killed(other_team).to_s
 			elsif @board.stalemate(other_team)
 				print 'stalemate'
 				break

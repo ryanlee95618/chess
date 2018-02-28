@@ -60,7 +60,12 @@ class King < Piece
 	end
 
 	def valid_delta?(delta)
-		(diagonal?(delta) and distance(delta) == 2) or (perpendiculer?(delta) and distance(delta) == 1)
+
+		if distance(delta) == 2 and delta.last == 0
+			delta.first
+		else
+			(diagonal?(delta) and distance(delta) == 2) or (perpendiculer?(delta) and distance(delta) == 1)
+		end
 	end
 
 	def calculate_valid_deltas
