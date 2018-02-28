@@ -166,15 +166,7 @@ class Board
 		origin, destination = move
 		origin_piece = get_square(origin)
 
-		#castling
-		if origin_piece.type == "king" and get_delta(origin, destination).first.abs == 2
-			
-			#move knight as well
-			direction = get_delta(origin, destination).first.positive? ? "right" : "left" 
-			castle_rook(origin_piece.team, direction)
-		end
-
-
+		
 
 		origin_piece.move_history << get_delta(origin, destination)
 
@@ -183,6 +175,26 @@ class Board
 
 		set_square(destination, origin_piece) 
 		set_square(origin, false)
+
+		
+		#castling
+		if origin_piece.type == "king" and get_delta(origin, destination).first.abs == 2
+			#move knight as well
+			direction = get_delta(origin, destination).first.positive? ? "right" : "left" 
+			castle_rook(origin_piece.team, direction)
+
+		#pawn promotion
+		elsif origin_piece.type == "pawn"
+			end_y_coord = origin_piece.team == "white" ? 0 : 7
+			if destination.last == end_y_coord
+				new_piece = Queen.new(origin_piece.team)
+				set_square(destination, new_piece)
+				return "promo"
+			end	
+		end
+
+
+
 	end
 
 	def simulate_move_for_check(origin, destination)
@@ -232,14 +244,6 @@ class Board
 	end
 
 	def pieces_between_exclusive?(origin, destination)
-
-		# list = coordinates_between_inclusive(origin,destination).map {|coord| get_square(coord)}
-
-		# if list.length <= 2
-		# 	return false
-		# else
-		# 	return list[1...-1].select {|piece| piece}.count > 0
-		# end
 		pieces = coordinates_between_inclusive(origin,destination).map {|coord| get_square(coord)}[1...-1].select {|piece| piece}
 		pieces.count > 0
 	end
@@ -347,27 +351,6 @@ class Board
 	end
 
 
-	def pawn_promotion_check(team)
-		each_coordinate do |x,y|
-			if team == "white"
-				if y == 0
-					piece = get_square([x,y])
-					if piece and piece.team == team and piece.type == "pawn"
-
-					end
-				end
-			else
-				if y == 7
-					piece = get_square([x,y])
-					if piece and piece.team == team and piece.type == "pawn"
-
-					end
-				end
-			end
-
-		end
-	end
-
 	def can_castle?(team, direction)
 
 		# Neither the king nor the rook being used has been moved yet during the game. 
@@ -405,6 +388,13 @@ class Board
 		x = direction == "right" ? 7 : 0
 		x_delta = direction == "right" ? 1 : -1
 		execute_move([[x,y],[4+x_delta ,y]])
+	end
+
+	def promote_pawn(location, new_piece_name)
+		old_piece = get_square(location)
+		new_piece = Object.const_get(new_piece_name.capitalize).new(old_piece.team)
+
+		set_square(location, new_piece)
 	end
 
 end

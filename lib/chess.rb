@@ -64,26 +64,28 @@ pawn		forward 2, no on in way and on first turn
 
 
 
-NEED TO IMPLEMENT
 
+need to refactor game end code
 check
 checkmate
 stalemate
 
+
+tie 
+king versus king
+king and bishop versus king
+king and knight versus king
+king and bishop versus king and bishop with the bishops on the same colour. (Any number of additional bishops of either color on the same color of square due to underpromotion do not affect the situation.)
+
+
+
+
+NEED TO IMPLEMENT
 pawn en passant (vulnerable after first forwarddistance 2 move)
 # Another unusual rule is the en passant capture. It can occur after a pawn advances two squares using its initial two-step move option, and the square passed over is attacked by an enemy pawn. The enemy pawn is entitled to capture the moved pawn "in passing"—as if it had advanced only one square. The capturing pawn moves to the square over which the moved pawn passed (see diagram), and the moved pawn is removed from the board. The option to capture en passant must be exercised on the move immediately following the double-step pawn advance, or it is lost for the remainder of the game.
 The capturing pawn must be on its fifth rank.
 The opponent must move a pawn two squares, landing the pawn directly alongside the capturing pawn on the fifth rank.
 You must make the capture immediately; you only get one chance to capture en passant.
-
-
-
-castling:
-
-
-
-
-
 
 
 
@@ -148,13 +150,16 @@ class Chess
 
 	end
 
-	def choose_promotion_piece(team)
-		name  = gets.chomp.downcase
+	def choose_promotion_piece(player)
+		puts "#{player.name}, enter new piece name:"
+		p_name  = gets.chomp.downcase
 		piece_names = ["queen", "rook", "bishop", "knight", "pawn"]
 
-		new_piece = Object.const_get(name.capitalize).new
-
-
+		until piece_names.include?(p_name)
+			puts "Invalid piece name. Try Again."
+			p_name = gets.chomp.downcase
+		end
+		p_name
 	end
 
 	def validate_input(coord)	
@@ -173,35 +178,38 @@ class Chess
 	end
 
 	def play
-		@board.new_game
-		print @board
+		@board.pawn_promo_scenario
+		@board.to_s
 		loop do
 			player_index = (@turn+1)%2
 			player = @players[player_index]
 			other_team = player.team == "white" ? "black" : "white"
 			puts "#{player.name}, enter your move:"
 			move = get_coordinates
-			@board.execute_move(move)
+			result = @board.execute_move(move)
+
+			if result == "promo"
+				new_piece_name = choose_promotion_piece(player)
+				@board.promote_pawn(move.last, new_piece_name) 
+			end
+
+			@board.to_s
 
 			if @board.check(other_team)
-				print "CHECK"
-
+				puts "CHECK"
 				if @board.checkmate(other_team)
-
-					print "CHECKMATE" 
+					puts "CHECKMATE" 
 					break
 				end
-
 			elsif @board.stalemate(other_team)
-				print 'stalemate'
+				puts 'stalemate'
 				break
-				
 			end
-			print @board
+			
 			@turn += 1
 		end
 
-		print "GAME OVER"
+		puts "GAME OVER"
 	end
 end
 
