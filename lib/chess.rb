@@ -89,10 +89,6 @@ You must make the capture immediately; you only get one chance to capture en pas
 
 
 
-
-pawn promotion
-
-
 =end
 
 
@@ -195,17 +191,12 @@ class Chess
 
 			@board.to_s
 
-			if @board.check(other_team)
-				puts "CHECK"
-				if @board.checkmate(other_team)
-					puts "CHECKMATE" 
-					break
-				end
-			elsif @board.stalemate(other_team)
-				puts 'stalemate'
+			status = @board.game_status(other_team)
+			puts status
+			if ["checkmate", "stalemate", "tie"].include?(status)
 				break
 			end
-			
+
 			@turn += 1
 		end
 

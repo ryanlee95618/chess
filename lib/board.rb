@@ -326,6 +326,21 @@ class Board
 		false
 	end
 
+	def tie
+		pieces = []
+		each_coordinate do |location|
+			piece = get_square(location)
+			pieces << piece.type if piece
+		end
+
+		if pieces.length <= 3
+			if pieces.include?("bishop") or pieces.include?("knight")
+				return true
+			end
+		end
+		false
+	end
+
 	def checkmate(team)
 		check(team) and not king_can_escape(team) and not check_can_be_blocked_or_killed(team)
 	end
@@ -375,11 +390,7 @@ class Board
 			return false if simulate_move_for_check([4,y],[x,y])
 		end
 
-		
 		true
-
-
-
 	end
 
 
@@ -397,6 +408,22 @@ class Board
 		set_square(location, new_piece)
 	end
 
+
+	def game_status(team)
+
+		if check(team)
+			if checkmate(team)
+				"checkmate" 
+			else
+				"check"	
+			end
+		elsif stalemate(team)
+			'stalemate'
+		elsif tie
+			'tie'
+		end
+
+	end
 end
 
 
